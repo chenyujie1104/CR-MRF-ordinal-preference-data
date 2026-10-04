@@ -1,0 +1,28 @@
+# R / RStudio
+.Rproj.user/
+.Rhistory
+.RData
+.Ruserdata
+*.Rproj
+
+# Compiled C++ / Rcpp artifacts
+*.o
+*.so
+*.dll
+
+# Generated outputs (regenerable from the scripts)
+*.pdf
+Rplots.pdf
+
+# Fitted objects written by the scripts; the one top10_orderings.R reads
+# is tracked deliberately.
+Application/MovieLens/*.RData
+!Application/MovieLens/fit_with_covariates.RData
+
+# Raw MovieLens corpus (not redistributed; see README)
+Application/MovieLens/Movie1M/ml-1m/
+Application/MovieLens/Movie1M/ml-1m.zip
+
+# OS cruft
+.DS_Store
+Thumbs.db

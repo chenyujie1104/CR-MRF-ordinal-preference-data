@@ -1,0 +1,10 @@
+Estimated node slopes beta_j for MovieLens 1M
+n_train = 170, n_test = 64, p = 5, M = 4. Age is standardised.
+Joint MLE (CR-MRF) vs node-wise MPLE (ordinalNet).
+
+                     Movie Female MLE Female MPLE Age MLE Age MPLE
+   When Harry Met Sally...      -0.58       -0.61    0.06    -0.36
+                 Airplane!       0.66        0.69    0.04    -0.03
+ Desperately Seeking Susan      -0.27       -0.55   -0.36    -0.58
+  Ferris Bueller's Day Off      -0.03       -1.24    0.22     0.31
+        The Breakfast Club      -0.29       -0.73    0.22     0.13
