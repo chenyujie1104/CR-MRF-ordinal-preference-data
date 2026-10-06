@@ -22,7 +22,7 @@ suppressPackageStartupMessages({
   library(ggplot2)
   library(doParallel)
 })
-
+set.seed(19961104)
 registerDoParallel(1)                 # ordinalNet's foreach backend
 
 # Paths resolve relative to this script's directory; outputs land here too.
@@ -338,7 +338,7 @@ ggsave("P1_comparison_by_gender_selected5.pdf", g, width = 11.5, height = 9.5)
 # ---------------------------------------------------------------------
 # 10. Plackett-Luce refit with random tie-breaking
 # ---------------------------------------------------------------------
-set.seed(19961104); B <- 10
+B <- 10
 ranking_list <- unlist(lapply(seq_len(B), function(b)
                          lapply(seq_len(nrow(Y_obs)), function(i)
                            order(Y_obs[i, ], sample(p), decreasing = TRUE))),
