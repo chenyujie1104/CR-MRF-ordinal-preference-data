@@ -79,12 +79,10 @@ The example script will:
 - Fit the covariate CR-MRF by joint MLE on the 170 training reviewers
 - Simulate the 64 held-out reviewers from the fitted model by Gibbs sampling
 - Fit the node-wise MPLE (`ordinalNet`) and a covariate-dependent Plackett-Luce model on the same training data
-- Reproduce the node-slope table and the pairwise-preference comparison in the paper up to Monte Carlo variation
-- Save `node_slopes_MLE_vs_MPLE.txt` and `P1_comparison_by_gender_selected5.pdf` to your local directory
+- Reproduce the node-slope table (Table S.4) and the pairwise-preference comparison (Figure 1 and Figure S.3) in the paper up to Monte Carlo variation
+- Save outputs to your local directory
 
-The run takes a couple of minutes with several OpenMP threads available, most
-of it the ~1300 proximal-gradient iterations, and considerably longer
-single-threaded (see Parallel Computing Setup).
+The run takes a couple of minutes with several OpenMP threads available and considerably longer single-threaded (see Parallel Computing Setup).
 
 ## Main Functions
 

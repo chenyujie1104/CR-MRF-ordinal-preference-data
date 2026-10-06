@@ -6,9 +6,12 @@
 # gender drive the individual-specific node and edge parameters through
 # x_tilde_i = c(1, female_i, age_std_i).
 #
-# Two outputs, both written to this directory:
+# Three outputs, all written to this directory:
 #   node_slopes_MLE_vs_MPLE.txt            node slopes, joint MLE vs MPLE
 #   P1_comparison_by_gender_selected5.pdf  pairwise-preference heatmaps
+#   ..._selected5_random_tie_break.pdf     the same, with the Plackett-Luce
+#                                          baseline refitted on randomly
+#                                          tie-broken rankings
 #
 # Run from this directory (Application/MovieLens/):
 #   Rscript example_run.R
@@ -238,7 +241,7 @@ P_PL    <- apply(P_PL_i, c(2, 3), mean)
 diag(P1_test) <- diag(P1_CR) <- diag(P_PL) <- 1
 err_CR <- norm(P1_test - P1_CR, "F")
 err_PL <- norm(P1_test - P_PL,  "F")
-cat(sprintf("Held-out Frobenius error: CR-MRF %.3f | Plackett-Luce %.3f\n",
+cat(sprintf("Column-order tie-break | held-out Frobenius error: CR-MRF %.3f | Plackett-Luce %.3f\n",
             err_CR, err_PL))
 
 # Same three matrices within each gender: observed rows, that group's
@@ -331,3 +334,130 @@ g <- ggplot(d_gender, aes(col, row, fill = prob)) +
   )
 
 ggsave("P1_comparison_by_gender_selected5.pdf", g, width = 11.5, height = 9.5)
+
+# ---------------------------------------------------------------------
+# 10. Plackett-Luce refit with random tie-breaking
+# ---------------------------------------------------------------------
+set.seed(19961104); B <- 10
+ranking_list <- unlist(lapply(seq_len(B), function(b)
+                         lapply(seq_len(nrow(Y_obs)), function(i)
+                           order(Y_obs[i, ], sample(p), decreasing = TRUE))),
+                       recursive = FALSE)
+gender_r <- rep(gender, B); age_r <- rep(age_std, B)
+
+# Summing the log-likelihood over the B copies averages it over the
+# tie-breakings, up to the factor B, which does not move the optimum.
+fit_PL <- optim(
+  par = rep(0, 3 * (J - 1)), fn = neg_loglik,
+  ranking_list = ranking_list, gender = gender_r, age_std = age_r, J = J,
+  method = "BFGS", control = list(maxit = 5000, reltol = 1e-10)
+)
+
+est_PL <- unpack_parameters(fit_PL$par, J)
+
+eta_test <- outer(rep(1, n_test), est_PL$beta) +
+            outer(gender_test,    est_PL$gamma) +
+            outer(age_std_test,   est_PL$delta)
+colnames(eta_test) <- movie_cols
+
+P_PL_i <- array(NA_real_, dim = c(n_test, p, p),
+                dimnames = list(NULL, movie_cols, movie_cols))
+for (j in 1:p) for (k in 1:p) if (j != k)
+  P_PL_i[, j, k] <- plogis(eta_test[, j] - eta_test[, k])
+
+P1_test <- pair_prob(Y_test)
+P1_CR   <- pair_prob(draws)
+P_PL    <- apply(P_PL_i, c(2, 3), mean)
+
+diag(P1_test) <- diag(P1_CR) <- diag(P_PL) <- 1
+err_CR <- norm(P1_test - P1_CR, "F")
+err_PL <- norm(P1_test - P_PL,  "F")
+cat(sprintf("Random tie-break      | held-out Frobenius error: CR-MRF %.3f | Plackett-Luce %.3f\n",
+            err_CR, err_PL))
+
+groups <- list(Male   = which(gender_test == 0),
+               Female = which(gender_test == 1))
+
+pair_prob_by_group <- function(sel) {
+  Ys <- matrix(Y_sim[, sel, , drop = FALSE], ncol = p)   # collapse K x n
+  colnames(Ys) <- movie_cols
+  list(test = pair_prob(Y_test[sel, , drop = FALSE]),
+       CR   = pair_prob(Ys),
+       PL   = apply(P_PL_i[sel, , , drop = FALSE], c(2, 3), mean))
+}
+P_by_gender <- lapply(groups, pair_prob_by_group)
+
+err_gender <- do.call(rbind, lapply(names(groups), function(g) {
+  P <- P_by_gender[[g]]
+  fix_diag <- function(A) { diag(A) <- 1; A }
+  Pt <- fix_diag(P$test); Pc <- fix_diag(P$CR); Pp <- fix_diag(P$PL)
+  data.frame(Gender = g, n = length(groups[[g]]),
+             CR_MRF = norm(Pt - Pc, "F"),
+             PL     = norm(Pt - Pp, "F"))
+}))
+print(err_gender, row.names = FALSE)
+
+# ---------------------------------------------------------------------
+# 11. Figure: the same heatmaps under random tie-breaking
+# ---------------------------------------------------------------------
+
+strength <- rowMeans(`diag<-`(P1_test, NA), na.rm = TRUE)
+ord      <- order(strength, decreasing = TRUE)
+lab_ord  <- node_lab[ord]
+
+to_long <- function(Mat, panel) {
+  Mat <- Mat[ord, ord]
+  diag(Mat) <- NA                  # self-comparisons carry no information
+  data.frame(
+    row   = factor(rep(lab_ord, times = p), levels = lab_ord),
+    col   = factor(rep(lab_ord, each  = p), levels = lab_ord),
+    prob  = as.vector(Mat),        # column-major: row index varies fastest
+    panel = panel
+  )
+}
+
+d_gender <- do.call(rbind, lapply(names(groups), function(gg) {
+  P  <- P_by_gender[[gg]]
+  e  <- err_gender[err_gender$Gender == gg, ]
+  pn <- c(sprintf("%s (n = %d): observed",               gg, e$n),
+          sprintf("%s: Plackett-Luce  (error %.3f)",      gg, e$PL),
+          sprintf("%s: CR-MRF  (error %.3f)",             gg, e$CR_MRF))
+  rbind(to_long(P$test, pn[1]),
+        to_long(P$PL,   pn[2]),
+        to_long(P$CR,   pn[3]))
+}))
+d_gender$panel <- factor(d_gender$panel, levels = unique(d_gender$panel))
+
+g <- ggplot(d_gender, aes(col, row, fill = prob)) +
+  geom_tile(colour = "white", linewidth = 0.7) +
+  geom_text(data = function(x) subset(x, !is.na(prob)),
+            aes(label = sprintf("%.2f", prob), colour = abs(prob - 0.5) > 0.33),
+            size = 3, show.legend = FALSE) +
+  scale_colour_manual(values = c(`FALSE` = "grey15", `TRUE` = "white")) +
+  # Diverging, centred on 0.5: white is a coin flip, red = row wins,
+  # blue = row loses. A sequential ramp hides that 0.5 is the null value.
+  scale_fill_gradient2(low = "#2166AC", mid = "#F7F7F7", high = "#B2182B",
+                       midpoint = 0.5, limits = c(0, 1),
+                       breaks = c(0, 0.25, 0.5, 0.75, 1),
+                       labels = c("0", ".25", ".5 (tie)", ".75", "1"),
+                       na.value = "grey92",
+                       name = "P(row preferred to column) + 0.5 P(tie)") +
+  scale_y_discrete(limits = rev) +
+  coord_equal() +
+  facet_wrap(~ panel, nrow = 2) +
+  labs(x = NULL, y = NULL) +
+  theme_minimal(base_size = 11) +
+  theme(
+    panel.grid    = element_blank(),
+    axis.text.x   = element_text(angle = 30, hjust = 1),
+    axis.ticks    = element_blank(),
+    strip.text    = element_text(face = "bold", size = 11, margin = margin(b = 6)),
+    legend.position       = "bottom",
+    legend.key.width      = grid::unit(2.4, "cm"),
+    legend.key.height     = grid::unit(0.35, "cm"),
+    legend.title.position = "top",
+    plot.margin   = margin(6, 10, 6, 6)
+  )
+
+ggsave("P1_comparison_by_gender_selected5_random_tie_break.pdf", g,
+       width = 11.5, height = 9.5)
