@@ -186,4 +186,15 @@ example uses standardised age and a female indicator.
 The raw MovieLens 1M corpus is not redistributed here. It is available from
 <https://grouplens.org/datasets/movielens/1m/>.
 
+## Reference:
 
+\[1\] Chen, Y., Chakraborty, A., Bhadra, A. (2026). Covariate-dependent Joint Modeling of Multivariate Ordinal Preferences and Its Connections with Comparison Models. [arXiv:2610.09070](https://arxiv.org/abs/2610.09070)).
+
+```
+@article{chen2026covariate,
+  title={Covariate-dependent Joint Modeling of Multivariate Ordinal Preferences and Its Connections with Comparison Models},
+  author={Chen, Yujie, Chakraborty, Antik, Bhadra, Anindya},
+  journal={arXiv preprint arXiv:2610.09070},
+  year={2026}
+}
+```
