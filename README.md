@@ -188,7 +188,7 @@ The raw MovieLens 1M corpus is not redistributed here. It is available from
 
 ## Reference:
 
-\[1\] Chen, Y., Chakraborty, A., Bhadra, A. (2026). Covariate-dependent Joint Modeling of Multivariate Ordinal Preferences and Its Connections with Comparison Models. [arXiv:2610.09070](https://arxiv.org/abs/2610.09070)).
+\[1\] Chen, Y., Chakraborty, A., Bhadra, A. (2026). Covariate-dependent Joint Modeling of Multivariate Ordinal Preferences and Its Connections with Comparison Models. [arXiv:2610.09070](https://arxiv.org/abs/2610.09070).
 
 ```
 @article{chen2026covariate,
